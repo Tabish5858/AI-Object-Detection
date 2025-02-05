@@ -49,7 +49,7 @@ An advanced computer vision system integrating **YOLO v4** and **MobileNet SSD**
 ### **Setup**
 ```bash
 # Clone the repository
-git clone https://github.com/YOUR_USERNAME/AI-Object-Detection.git
+git clone https://github.com/Tabish5858/AI-Object-Detection.git
 cd AI-Object-Detection
 
 # Create virtual environment
