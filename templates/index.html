@@ -1,0 +1,315 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+    <title>AI Object Detection & Analysis</title>
+    <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@300;400;500&display=swap" rel="stylesheet">
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: 'Roboto', sans-serif;
+        }
+
+        body {
+            background: #121212;
+            color: #e0e0e0;
+        }
+
+        .container {
+            max-width: 1000px;
+            margin: 0 auto;
+            padding: 40px 20px;
+        }
+
+        h1 {
+            text-align: center;
+            color: #bb86fc;
+            margin-bottom: 30px;
+            font-weight: 500;
+        }
+
+        .upload-container {
+            background: #1e1e1e;
+            padding: 30px;
+            border-radius: 10px;
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.5);
+            text-align: center;
+            margin-bottom: 30px;
+        }
+
+        #image-input {
+            display: none;
+        }
+
+        .upload-label {
+            display: inline-block;
+            padding: 12px 24px;
+            background: #bb86fc;
+            color: #121212;
+            border-radius: 25px;
+            cursor: pointer;
+            transition: all 0.3s;
+            margin-right: 10px;
+        }
+
+        .upload-label:hover {
+            background: #9b59b6;
+        }
+
+        button {
+            padding: 12px 24px;
+            background: #03dac6;
+            color: #121212;
+            border: none;
+            border-radius: 25px;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+
+        button:hover {
+            background: #018786;
+        }
+
+        .loading {
+            display: none;
+            margin: 20px 0;
+        }
+
+        .loader {
+            border: 4px solid #f3f3f3;
+            border-top: 4px solid #bb86fc;
+            border-radius: 50%;
+            width: 40px;
+            height: 40px;
+            animation: spin 1s linear infinite;
+            margin: 0 auto;
+        }
+
+        @keyframes spin {
+            0% {
+                transform: rotate(0deg);
+            }
+
+            100% {
+                transform: rotate(360deg);
+            }
+        }
+
+        .image-container {
+            background: #1e1e1e;
+            padding: 20px;
+            border-radius: 10px;
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.5);
+            margin: 20px 0;
+            text-align: center;
+        }
+
+        #output-image {
+            max-width: 100%;
+            border-radius: 5px;
+        }
+
+        .description-box {
+            background: #1e1e1e;
+            padding: 25px;
+            border-radius: 10px;
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.5);
+            margin: 20px 0;
+            display: none;
+        }
+
+        .stats-container {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 15px;
+            margin-bottom: 20px;
+        }
+
+        .stat-item {
+            background: #2c2c2c;
+            padding: 15px;
+            border-radius: 8px;
+            text-align: center;
+            border: 1px solid #3e3e3e;
+        }
+
+        .stat-item strong {
+            color: #bb86fc;
+            display: block;
+            margin-bottom: 5px;
+        }
+
+        .modal-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.7);
+            display: none;
+            justify-content: center;
+            align-items: center;
+        }
+
+        .modal-content {
+            background: #1e1e1e;
+            padding: 20px;
+            border-radius: 6px;
+            width: 90%;
+            max-width: 600px;
+            position: relative;
+        }
+
+        .close-modal {
+            position: absolute;
+            top: 10px;
+            right: 10px;
+            cursor: pointer;
+            font-size: 20px;
+            background: #bb86fc;
+            border: none;
+            border-radius: 50%;
+            width: 30px;
+            height: 30px;
+        }
+
+        .close-modal:hover {
+            background: #9b59b6;
+        }
+
+        @media (max-width: 768px) {
+            .container {
+                padding: 20px 10px;
+            }
+
+            .stats-container {
+                grid-template-columns: 1fr;
+            }
+        }
+    </style>
+</head>
+
+<body>
+    <div class="container">
+        <h1>AI Object Detection & Analysis</h1>
+
+        <div class="upload-container">
+            <input type="file" id="image-input" accept="image/*">
+            <label for="image-input" class="upload-label">Choose Image</label>
+            <button onclick="detectObjects()">Analyze Image</button>
+            <div class="loading" id="loading">
+                <div class="loader"></div>
+                <p>Processing image...</p>
+            </div>
+        </div>
+
+        <div class="image-container">
+            <img id="output-image">
+        </div>
+
+        <div class="description-box" id="description-box">
+            <h3>Detection Results</h3>
+            <div id="object-details"></div>
+        </div>
+
+        <div class="modal-overlay" id="modal-overlay">
+            <div class="modal-content">
+                <button class="close-modal" onclick="toggleModal()">&times;</button>
+                <h2>Extended Info</h2>
+                <p id="extended-info">Additional details go here...</p>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        function detectObjects() {
+            const input = document.getElementById('image-input');
+            const loading = document.getElementById('loading');
+            if (!input.files[0]) {
+                alert('Please select an image first.');
+                return;
+            }
+            loading.style.display = 'block';
+            const formData = new FormData();
+            formData.append('image', input.files[0]);
+            fetch('/detect', {
+                method: 'POST',
+                body: formData
+            })
+                .then(response => response.json())
+                .then(data => {
+                    loading.style.display = 'none';
+                    if (data.success) {
+                        document.getElementById('output-image').src = 'data:image/jpeg;base64,' + data.image;
+                        displayStats(data.results);
+                    } else {
+                        alert('Error: ' + data.error);
+                    }
+                })
+                .catch(error => {
+                    alert('Error processing image: ' + error);
+                    loading.style.display = 'none';
+                });
+        }
+
+        function displayStats(results) {
+            const uniqueTypes = [...new Set(results.map(r => r.class_name))];
+            const statsHtml = `
+                <div class="stats-container">
+                    <div class="stat-item">
+                        <strong>Total Objects</strong>
+                        <span>${results.length}</span>
+                    </div>
+                    <div class="stat-item">
+                        <strong>Object Types</strong>
+                        <span>${uniqueTypes.length}</span>
+                    </div>
+                    <div class="stat-item">
+                        <strong>Most Common</strong>
+                        <span>${getMostCommonObject(results)}</span>
+                    </div>
+                </div>
+            `;
+            let details = statsHtml;
+            details += results.map(r => `
+                <div style="margin:10px 0; border:1px solid #3e3e3e; padding:8px;">
+                    <strong>${r.class_name}</strong> (${r.confidence.toFixed(2)})
+                    <div>Color: <em>${r.color}</em></div>
+                    <div>${r.description}</div>
+                </div>
+            `).join('');
+            document.getElementById('description-box').innerHTML = '<h3>Detection Results</h3>' + details;
+            document.getElementById('description-box').style.display = 'block';
+        }
+
+        function getMostCommonObject(results) {
+            const counts = {};
+            results.forEach(r => {
+                counts[r.class_name] = (counts[r.class_name] || 0) + 1;
+            });
+            return Object.entries(counts).sort((a, b) => b[1] - a[1])[0][0];
+        }
+
+        document.getElementById('image-input').addEventListener('change', function (e) {
+            const fileName = e.target.files[0]?.name;
+            if (fileName) {
+                this.nextElementSibling.textContent = fileName;
+            }
+        });
+
+        document.getElementById('output-image').onclick = function () {
+            document.getElementById('extended-info').textContent =
+                'Here you could show more advanced analysis or data.';
+            toggleModal();
+        };
+
+        function toggleModal() {
+            const overlay = document.getElementById('modal-overlay');
+            overlay.style.display = (overlay.style.display === 'flex') ? 'none' : 'flex';
+        }
+    </script>
+</body>
+
+</html>

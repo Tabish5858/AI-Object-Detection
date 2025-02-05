@@ -1,0 +1,16 @@
+# Python
+__pycache__/
+*.py[cod]
+venv/
+*.so
+
+# Model files (large files)
+models/*.weights
+models/*.caffemodel
+
+# Environment
+.env
+
+# IDE
+.vscode/
+.idea/
